@@ -1,0 +1,37 @@
+import re
+import datetime
+
+def NormalizeURL(url):
+
+	return url
+
+def MetadataObjectForURL(url):
+	content = HTML.ElementFromURL(url, errors='ignore', cacheTime=1800)
+
+        title = content.xpath("//head//meta[@property='og:title']")[0].get('content')
+        description = content.xpath("//head//meta[@name='description']")[0].get('content')
+        thumb = content.xpath("//head//meta[@property='og:image']")[0].get('content')
+	
+        return VideoClipObject(
+			title = title,
+			summary = description,
+			thumb = thumb
+		)
+
+def MediaObjectsForURL(url):
+
+	ret = []
+	ret.append(
+		MediaObject(
+			parts = [PartObject(key=Callback(PlayVideo, url=url))]
+		)
+	)
+	
+  	return ret
+
+def PlayVideo(url):
+        content = HTML.ElementFromURL(url, errors='ignore', cacheTime=1800)
+        video_url = content.xpath('//video/source/@src')[0]
+        Log.Debug('video URL:%s'%video_url)
+        return Redirect(url=video_url)
+
