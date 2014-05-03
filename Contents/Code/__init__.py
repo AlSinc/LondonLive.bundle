@@ -83,13 +83,15 @@ def GetVideosByLetter(letter, url):
         oc = ObjectContainer(title2 = letter)
 
         content = HTML.ElementFromURL(url, errors='ignore', cacheTime=1800)
-        programmes = content.xpath("//div[@class='tv-programme__info']/a[@class='tv-programme__link']")
+        programmes = content.xpath("//div[@class='tv-programmes__item tv-programme']")
         for programme in programmes:
-                prog_url = programme.get('href')
+                prog_url = programme.xpath(".//a[@class='tv-programme__link']/@href")[0]
                 prog_title = programme.xpath(".//h3[@class='tv-programme__title']")[0].text
                 prog_desc = programme.xpath(".//p[@class='tv-programme__description']")[0].text
-                oc.add(VideoClipObject(title = prog_title, 
-                                       url = LL_URL + prog_url,
-                                       summary = prog_desc))
+                prog_thumb = programme.xpath(".//span[@class='picture']/noscript/img/@src")[0]
+
+                oc.add(VideoClipObject(title = prog_title, thumb=prog_thumb,
+                                               url = LL_URL + prog_url,
+                                               summary = prog_desc))
         return oc
 
