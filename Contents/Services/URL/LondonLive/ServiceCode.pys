@@ -1,5 +1,5 @@
 import re
-import datetime
+from datetime import datetime, date, timedelta
 
 def NormalizeURL(url):
 
@@ -8,14 +8,36 @@ def NormalizeURL(url):
 def MetadataObjectForURL(url):
 	content = HTML.ElementFromURL(url, errors='ignore', cacheTime=1800)
 
-        title = content.xpath("//head//meta[@property='og:title']")[0].get('content')
+        meta_title = content.xpath("//head//meta[@property='og:title']")
+        if len(meta_title) > 0:
+                title = meta_title[0].get('content')
+        else:
+                title = 'London Live'
+
         description = content.xpath("//head//meta[@name='description']")[0].get('content')
-        thumb = content.xpath("//head//meta[@property='og:image']")[0].get('content')
+
+        meta_image = content.xpath("//head//meta[@property='og:image']")
+        if len(meta_image) > 0:
+                thumb = meta_image[0].get('content')
+        else:
+                thumb = ''
 	
+
+        broadcast_date_div = content.xpath("//div[@class='media-marquee-text__broadcast-date']")
+        if len(broadcast_date_div) > 0:
+                broadcast_date_str = broadcast_date_div[0].text
+                broadcast_date = datetime.strptime(broadcast_date_str, "Broadcast %I:%M%p, %a %d %b")
+                broadcast_date = broadcast_date.replace(year = datetime.today().year)
+                if broadcast_date > (datetime.today() + timedelta(days = 15)):
+                        broadcast_date = broadcast_date.replace(year = broadcast_date.year-1)
+        else:
+                broadcast_date = date.today()
+
         return VideoClipObject(
 			title = title,
 			summary = description,
-			thumb = thumb
+			thumb = thumb,
+                        originally_available_at = broadcast_date
 		)
 
 def MediaObjectsForURL(url):
@@ -23,7 +45,8 @@ def MediaObjectsForURL(url):
 	ret = []
 	ret.append(
 		MediaObject(
-			parts = [PartObject(key=Callback(PlayVideo, url=url))]
+                        optimized_for_streaming = True,
+                        parts = [PartObject(key=HTTPLiveStreamURL(Callback(PlayVideo, url=url)))]
 		)
 	)
 	
