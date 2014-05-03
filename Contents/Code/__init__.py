@@ -21,7 +21,7 @@ def Main():
         else:
                 thumb = ''
  
-                oc.add(VideoClipObject(title = 'Live',
+        oc.add(VideoClipObject(title = 'Live',
                                        summary = 'Live stream',
                                        thumb = thumb,
                                        url = LL_URL_LIVE))
