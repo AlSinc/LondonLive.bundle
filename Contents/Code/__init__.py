@@ -65,18 +65,14 @@ def GetVideosInCategory(url):
         content = HTML.ElementFromURL(url)
         programmes = content.xpath("//div[@class='clip-tile']")
 
-        for programme in programmes:
-                playable = programme.xpath(".//a[@class='clip-tile__play']")
-                if len(playable) > 0:
-                        title = programme.xpath(".//h3[@class='clip-tile__title']")[0].text
-                        thumb = programme.xpath("a/span/noscript/img/@src")[0]
-                        desc = programme.xpath(".//p[@class='clip-tile__text']")[0].text
-                        video_url = programme.xpath("a[@class='clip-tile__link']/@href")[0]
-                        oc.add(VideoClipObject(title=title, thumb=thumb, 
-                                               url=LL_URL+video_url,
-                                               summary = desc))
-                        Log.Debug(title)
-                        Log.Debug(thumb)
+        for programme in programmes:               
+		title = programme.xpath(".//h3[@class='clip-tile__title']")[0].text
+		thumb = programme.xpath("a/span/noscript/img/@src")[0]
+		desc = programme.xpath(".//p[@class='clip-tile__text']")[0].text
+		video_url = programme.xpath("a[@class='clip-tile__link']/@href")[0]
+		oc.add(DirectoryObject(title = title, thumb = thumb, summary = desc, 
+		                        key = Callback(GetProgram, url = LL_URL + video_url  )))
+
         return oc
 
 def GetVideosByLetter(letter, url):
@@ -90,8 +86,65 @@ def GetVideosByLetter(letter, url):
                 prog_desc = programme.xpath(".//p[@class='tv-programme__description']")[0].text
                 prog_thumb = programme.xpath(".//span[@class='picture']/noscript/img/@src")[0]
 
-                oc.add(VideoClipObject(title = prog_title, thumb=prog_thumb,
-                                               url = LL_URL + prog_url,
-                                               summary = prog_desc))
+                oc.add(DirectoryObject(title = prog_title, thumb = prog_thumb, summary = prog_desc,
+                                       key = Callback(GetProgram, url = LL_URL + prog_url  )))
         return oc
+
+def GetProgram(url, season = None):
+        oc = ObjectContainer()
+	series_info = []
+
+	content = HTML.ElementFromURL(url, errors='ignore', cacheTime=1800)
+	series = content.xpath("//div[contains(@class, 'js-series-content')]")
+	if len(series)==0:
+		prog_title = content.xpath("//span[@class='media-marquee-text__title-text']")[0].text
+		prog_desc = content.xpath("//div[@class='media-marquee-text__info']")[0].text
+		prog_thumb = content.xpath("//head/meta[@property='og:image']/@content")[0]
+		oc.add(VideoClipObject(title = prog_title,
+                                       summary = prog_desc,
+				       thumb = prog_thumb,
+                                       url = url))
+	else:		
+		if season is None:		
+			seasons = content.xpath("//li[contains(@class, 'series-content-season')]")
+			if len(seasons)>0:
+				for season in seasons:
+					data_season = season.get("data-season")
+					season_title = season.xpath(".//div")[0].text
+					oc.add(DirectoryObject(title = season_title,
+		                                           key = Callback(GetProgram, url = url, season = data_season)))
+				return oc
+	
+		data_api_url = series[0].get("data-api-url")
+		brand = series[0].get("data-api-brand")
+		info_url = LL_URL + data_api_url + "?brand=" + brand
+		if not season is None:
+			info_url = info_url + "&series=%s"%season		
+		try:
+			series_info = JSON.ObjectFromURL(info_url)
+		except:
+			Log.Debug("series info fetch failed")			
+
+		if len(series_info)>0:
+			for episode in series_info["Episodes"]:
+				prog_title = episode["Title"]
+				prog_desc = episode["Summary"]
+				prog_url = episode["Url"]
+				oc.add(VideoClipObject(title = prog_title,
+                                       summary = prog_desc,
+                                       url = LL_URL + prog_url))
+		else:
+			episodes = content.xpath("//li[contains(@class, 'episodes-carousel__item')]")
+			for episode in episodes:
+				prog_title = episode.xpath(".//h3[contains(@class, 'episodes-carousel__title')]")[0].text
+				prog_desc = episode.xpath(".//p[contains(@class, 'episodes-carousel__text')]")[0].text
+				prog_url = episode.xpath(".//a[contains(@class, 'episodes-carousel__link')]")[0].get("href")
+				prog_thumb = episode.xpath(".//span[contains(@class, 'episodes-carousel__image')]/span/@data-src")[0]
+				url = LL_URL + prog_url
+				oc.add(VideoClipObject(title = prog_title,
+                                       summary = prog_desc,
+				       thumb = prog_thumb,
+                                       url = LL_URL + prog_url))
+
+	return oc
 
