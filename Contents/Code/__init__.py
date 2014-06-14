@@ -66,12 +66,16 @@ def GetVideosInCategory(url):
         programmes = content.xpath("//div[@class='clip-tile']")
 
         for programme in programmes:               
-		title = programme.xpath(".//h3[@class='clip-tile__title']")[0].text
-		thumb = programme.xpath("a/span/noscript/img/@src")[0]
-		desc = programme.xpath(".//p[@class='clip-tile__text']")[0].text
-		video_url = programme.xpath("a[@class='clip-tile__link']/@href")[0]
-		oc.add(DirectoryObject(title = title, thumb = thumb, summary = desc, 
-		                        key = Callback(GetProgram, url = LL_URL + video_url  )))
+		prog_title = programme.xpath(".//h3[@class='clip-tile__title']")[0].text
+		prog_descs = programme.xpath(".//p[@class='clip-tile__text']")
+		if len(prog_descs)>0:
+			prog_desc = prog_descs[0].text
+		else:
+			prog_desc = ""
+		prog_thumb = programme.xpath("a/span/noscript/img/@src")[0]
+		prog_url = programme.xpath("a[@class='clip-tile__link']/@href")[0]
+		oc.add(DirectoryObject(title = prog_title, thumb = prog_thumb, summary = prog_desc, 
+		                        key = Callback(GetProgram, url = LL_URL + prog_url  )))
 
         return oc
 
@@ -81,10 +85,10 @@ def GetVideosByLetter(letter, url):
         content = HTML.ElementFromURL(url, errors='ignore', cacheTime=1800)
         programmes = content.xpath("//div[@class='tv-programmes__item tv-programme']")
         for programme in programmes:
-                prog_url = programme.xpath(".//a[@class='tv-programme__link']/@href")[0]
                 prog_title = programme.xpath(".//h3[@class='tv-programme__title']")[0].text
                 prog_desc = programme.xpath(".//p[@class='tv-programme__description']")[0].text
                 prog_thumb = programme.xpath(".//span[@class='picture']/noscript/img/@src")[0]
+                prog_url = programme.xpath(".//a[@class='tv-programme__link']/@href")[0]
 
                 oc.add(DirectoryObject(title = prog_title, thumb = prog_thumb, summary = prog_desc,
                                        key = Callback(GetProgram, url = LL_URL + prog_url  )))
