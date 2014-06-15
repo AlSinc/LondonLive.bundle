@@ -66,7 +66,7 @@ def GetVideosInCategory(url):
         programmes = content.xpath("//div[@class='clip-tile']")
 
         for programme in programmes:               
-		prog_title = programme.xpath(".//h3[@class='clip-tile__title']")[0].text
+		prog_title = programme.xpath(".//h3[@class='clip-tile__title']/text()")[0].strip()
 		prog_descs = programme.xpath(".//p[@class='clip-tile__text']")
 		if len(prog_descs)>0:
 			prog_desc = prog_descs[0].text
@@ -114,7 +114,13 @@ def GetProgram(url, season = None):
 			if len(seasons)>0:
 				for season in seasons:
 					data_season = season.get("data-season")
-					season_title = season.xpath(".//div")[0].text
+					season_title_label = season.xpath(".//span/text()")
+					if len(season_title_label)>0:
+						season_title = season_title_label[0]
+					else:
+						season_title = ""
+					season_title = season_title+ season.xpath(".//div/text()")[1].strip()
+					Log.Debug("season_title: %s"%season_title)
 					oc.add(DirectoryObject(title = season_title,
 		                                           key = Callback(GetProgram, url = url, season = data_season)))
 				return oc
